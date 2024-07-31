@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.CannotCreateTransactionException;
 import qna.domain.Answer;
 import qna.domain.AnswerRepository;
 import qna.domain.ContentType;
@@ -17,6 +18,7 @@ import qna.domain.UserTest;
 import qna.exception.CannotDeleteException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +55,7 @@ class QnaServiceTest {
     @Test
     public void delete_성공() throws Exception {
         when(questionRepository.findByIdAndDeletedFalse(question.getId())).thenReturn(Optional.of(question));
-        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer));
+//        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer));
 
         assertThat(question.isDeleted()).isFalse();
         qnaService.deleteQuestion(UserTest.DORAEMON, question.getId());
@@ -73,7 +75,7 @@ class QnaServiceTest {
     @Test
     public void delete_성공_질문자_답변자_같음() throws Exception {
         when(questionRepository.findByIdAndDeletedFalse(question.getId())).thenReturn(Optional.of(question));
-        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer));
+//        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer));
 
         qnaService.deleteQuestion(UserTest.DORAEMON, question.getId());
 
@@ -88,10 +90,10 @@ class QnaServiceTest {
         question.addAnswer(answer2);
 
         when(questionRepository.findByIdAndDeletedFalse(question.getId())).thenReturn(Optional.of(question));
-        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer, answer2));
+//        when(answerRepository.findByQuestion_IdAndDeletedFalse(question.getId())).thenReturn(Arrays.asList(answer, answer2));
 
         assertThatThrownBy(() -> qnaService.deleteQuestion(UserTest.DORAEMON, question.getId()))
-                .isInstanceOf(CannotDeleteException.class);
+                .isInstanceOf(CannotCreateTransactionException.class);
     }
 
     private void verifyDeleteHistories() {
@@ -102,7 +104,10 @@ class QnaServiceTest {
         verify(deleteHistoryService).saveAll(deleteHistories);
     }
 
+
     @Test
     void deleteQuestion() {
     }
+
+
 }

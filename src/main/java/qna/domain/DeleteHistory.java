@@ -15,6 +15,7 @@ public class DeleteHistory {
     }
 
     @ManyToOne
+    @JoinColumn(nullable = false)
     private User deletedBy;
 
     public User getDeletedBy() {

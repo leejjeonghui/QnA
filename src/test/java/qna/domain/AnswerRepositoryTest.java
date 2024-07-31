@@ -57,6 +57,7 @@ class AnswerRepositoryTest {
         // 하나의 질문에 대해 여러 개의 답변이 저장되어 있다.
         // 일부 답변은 삭제 처리되어 있다.
 
+
         // when
         // 해당 질문의 ID로 삭제되지 않은 답변 목록을 조회한다.
 
@@ -95,4 +96,6 @@ class AnswerRepositoryTest {
         // 조회 결과가 null이어야 한다.
         assertThat(answerRepository.findByIdAndDeletedFalse(저장된_답변.getId()).orElse(null)).isNull();
     }
+
+
 }

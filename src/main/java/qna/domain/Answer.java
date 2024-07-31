@@ -16,9 +16,11 @@ public class Answer {
     private Long id;
 
     @ManyToOne
+    @JoinColumn(nullable = false, foreignKey = @ForeignKey(name = "kf_writer_id"))
     private User writer;
 
     @ManyToOne
+    @JoinColumn(nullable = false, foreignKey = @ForeignKey(name = "kf_question_id"))
     private Question question;
 
     @Lob

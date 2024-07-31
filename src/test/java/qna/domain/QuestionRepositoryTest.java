@@ -10,13 +10,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import qna.exception.CannotDeleteException;
+import org.springframework.test.context.jdbc.Sql;
 
 import static org.assertj.core.api.Assertions.*;
-import static qna.domain.QuestionTest.Q1;
+
 import static qna.domain.UserTest.*;
 
+
 @DataJpaTest
+@Sql("/truncate.sql")
 class QuestionRepositoryTest {
 
     @Autowired
@@ -24,6 +26,9 @@ class QuestionRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AnswerRepository answerRepository;
 
     @PersistenceContext
     EntityManager em;
@@ -147,6 +152,106 @@ class QuestionRepositoryTest {
     }
 
 
+    @Test
+    void getAnswersTest() {
+        // given
+        /*
+         * DB에 질문과 그 질문에 대한 2개의 답변들이 저장되어 있는 상황에서
+         * */
+        User 작성자 = userRepository.save(new User("", "", "", ""));
+        Question 질문 = new Question("제목", "내용");
+        질문.writeBy(작성자);
+        questionRepository.save(질문); // 캐싱됨
+//        Answer 답변1 = new Answer(); // writer와 question이 null
+//        답변1.writer = 작성자; // private이라서 불가능
+//        답변1.question = 질문; // private이라서 불가능
+        answerRepository.save(new Answer(null, 작성자, 질문, ""));
+        answerRepository.save(new Answer(null, 작성자, 질문, ""));
+        em.clear(); // 캐시 삭제
 
+        // when
+        /*
+         * QuestionRepository로 질문만 조회했을 때,
+         * 그 Question 오브젝트의 getAnswers() 메서드를 호출하면
+         * */
+        Question 찾은_질문 = questionRepository.findById(질문.getId())
+                .orElse(null);
+
+        // then
+        /*
+         * return된 Answer 리스트에 답변 2개가 들어 있다.
+         * */
+        assertThat(찾은_질문.getAnswers()).hasSize(2);
+    }
+
+
+    @DisplayName("Question을 저장할 때, Question의 answer리스트에 포함 된 answer들까지 함께 저장한다")
+    @Test
+    void 질문과_함께저장(){
+        // given
+        User 작성자 = userRepository.save(new User("", "", "", ""));
+
+        Question 질문 = new Question("제목", "내용");
+        질문.addAnswer(new Answer(작성자,질문, "Answers Contents1"));
+        질문.addAnswer(new Answer(SPONGEBOB,질문, "Answers Contents2"));
+
+        //when
+        questionRepository.save(질문);
+        em.clear();
+
+        // then
+        assertThat(질문.getAnswers().size()).isEqualTo(2);
+        assertThat(질문.getAnswers().get(0).getContents()).isEqualTo("Answers Contents1");
+
+    }
+
+
+    @Test
+    void remove_Answer(){
+        // given
+        User 작성자 = userRepository.save(new User("", "", "", ""));
+        Question 질문 = new Question("제목", "내용");
+        질문.addAnswer(new Answer(작성자,질문, "Answers Contents1"));
+        질문.addAnswer(new Answer(SPONGEBOB,질문, "Answers Contents2"));
+
+        //when
+        questionRepository.save(질문);
+
+        질문.getAnswers().remove(0);
+
+        em.clear();
+
+        // then
+        assertThat(질문.getAnswers().size()).isEqualTo(1);
+        assertThat(질문.getAnswers().get(0).getContents()).isEqualTo("Answers Contents2");
+
+    }
+
+    // 현실적인 시나리오
+    @Test
+    @DisplayName("조회한 Question의 answers(Answer 리스트)에 Answer를 추가하기만 하면 Answer가 저장된다")
+    void 질문과함께답변까지저장_좀더_현실적() {
+        // given
+        // 질문이 저장되어 있고
+        User 유저 = userRepository.save(new User("", "", "", ""));
+        Question 질문 = new Question("", "");
+        질문.writeBy(유저);
+        questionRepository.save(질문);
+        em.clear();
+
+        // (여기까지가 질문자가 질문을 작성해 둔 상황)
+        // (그리고 답변 생성 요청이 들어와서 질문에 답변을 추가하는 상황이 이어진다)
+
+        // when: 찾은 질문의 답변 목록에 답변을 추가하기만 하면
+        Question 찾은_질문 = questionRepository.findById(질문.getId())
+                .orElse(null);
+        Answer 답변 = new Answer(유저, 질문, "답변");
+        찾은_질문.addAnswer(답변);
+
+        // then
+        // 답변이 저장됨을 확인할 수 있다
+        List<Answer> answers = answerRepository.findByQuestion_IdAndDeletedFalse(찾은_질문.getId());
+        assertThat(answers).hasSize(1);
+    }
 
 }
